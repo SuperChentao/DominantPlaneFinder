@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 type Point3D struct {
@@ -78,7 +79,7 @@ func ReadXYZ(filename string) []Point3D {
 
 // saves a slice of Point3D into an XYZ file
 func SaveXYZ(filename string, points []Point3D) {
-	fmt.Println("write:", len(points))
+	// fmt.Println("write:", len(points), "to file ", filename)
 	file, err := os.Create(filename)
 	if err != nil {
 		return
@@ -192,13 +193,13 @@ func takeN(iteration int, cloud []Point3D, wg *sync.WaitGroup) <-chan [3]Point3D
 	wg.Add(1)
 	go func(c chan<- [3]Point3D) {
 		defer func() {
-			fmt.Println("takeN done")
+			// fmt.Println("takeN done")
 			wg.Done()
 		}()
 		for i := 0; i < iteration; i++ {
 			c <- randomTriplet(cloud)
 		}
-		fmt.Println("all points send")
+		// fmt.Println("all points send")
 		close(c)
 	}(ch)
 	return ch
@@ -217,7 +218,7 @@ func fanIn(chOut <-chan Plane3DwSupport, convergeCh chan<- Plane3DwSupport, wg *
 // Dominant plane identifier
 func dominantIdentifier(dominant *Plane3DwSupport, convergeCh <-chan Plane3DwSupport, wg2 *sync.WaitGroup) {
 	defer func() {
-		fmt.Println("domidant found")
+		// fmt.Println("dominant found")
 		wg2.Done()
 	}()
 
@@ -233,11 +234,12 @@ func resetDominant(support *Plane3DwSupport) {
 }
 
 func main() {
+	start := time.Now()
 	var wg sync.WaitGroup
 	var wg2 sync.WaitGroup
 
 	dominant := Plane3DwSupport{Plane3D{0, 0, 0, 0}, 0}
-	threadNumber := 20
+	threadNumber := 3000
 
 	filename := os.Args[1]
 	confidence := stringToFloat64(os.Args[2])
@@ -306,8 +308,9 @@ func main() {
 	file0 := fmt.Sprint(file, "_p0", extension)
 	SaveXYZ(file0, points)
 
-	fmt.Println("End main")
+	elapsed := time.Since(start)
+	fmt.Println("Process time:", elapsed, " with ", threadNumber, " threads and ", iteration, " iteration")
 
 }
 
-// go run main.go PointCloud1.xyz 0.99 0.2 0.1
+// go run main.go PointCloud1.xyz 0.99 0.1 0.1
